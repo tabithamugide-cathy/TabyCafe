@@ -1,7 +1,7 @@
-import React from "react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useCart } from "../context/CartContext";
 
 const API_BASE = "http://localhost:8080/api";
 
@@ -20,12 +20,6 @@ async function fetchCategories() {
   return res.json();
 }
 
-async function fetchMenuItems() {
-  const res = await fetch(`${API_BASE}/menu/items`);
-  if (!res.ok) throw new Error("Couldn't load menu items.");
-  return res.json();
-}
-
 async function createCategory(payload) {
   const res = await fetch(`${API_BASE}/menu/categories`, {
     method: "POST",
@@ -39,6 +33,7 @@ async function createCategory(payload) {
 
 export default function Categories() {
   const queryClient = useQueryClient();
+  const { menuItemsById } = useCart();
 
   const {
     data: categories = [],
@@ -47,13 +42,6 @@ export default function Categories() {
   } = useQuery({
     queryKey: ["categories"],
     queryFn: fetchCategories,
-  });
-
-  // Used only to compute a "X products" count per category, since the
-  // Category entity itself doesn't track this.
-  const { data: menuItems = [] } = useQuery({
-    queryKey: ["menuItems"],
-    queryFn: fetchMenuItems,
   });
 
   const [showModal, setShowModal] = useState(false);
@@ -81,7 +69,9 @@ export default function Categories() {
   };
 
   const productCountFor = (categoryId) =>
-    menuItems.filter((item) => item.categoryId === categoryId).length;
+    Object.values(menuItemsById).filter(
+      (item) => item.categoryId === categoryId,
+    ).length;
 
   return (
     <div className="space-y-6">

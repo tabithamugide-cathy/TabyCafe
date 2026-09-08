@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
-
-const API_BASE = "http://localhost:8080/api";
+import { API_BASE, fetchJson } from "../api";
 
 export const Route = createFileRoute("/tables")({
   component: RouteComponent,
@@ -29,27 +28,19 @@ const STATUS_STYLES = {
 const initialForm = { tableNumber: "", capacity: 2 };
 
 async function fetchTables() {
-  const res = await fetch(`${API_BASE}/tables`);
-  if (!res.ok) throw new Error("Couldn't load tables");
-  return res.json();
+  return fetchJson("/tables");
 }
 
 async function updateTableStatus({ id, status }) {
-  const res = await fetch(`${API_BASE}/tables/${id}/status?status=${status}`, {
-    method: "PATCH",
-  });
-  if (!res.ok) throw new Error("Couldn't update the table. Please try again.");
-  return res.json();
+  return fetchJson(`/tables/${id}/status?status=${status}`, { method: "PATCH" });
 }
 
 async function createTable(payload) {
-  const res = await fetch(`${API_BASE}/tables`, {
+  return fetchJson("/tables", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...payload, status: "FREE" }),
+    body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error("Couldn't add the table. Please try again.");
-  return res.json();
 }
 
 function RouteComponent() {

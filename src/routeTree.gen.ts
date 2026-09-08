@@ -18,10 +18,12 @@ import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as FoodmenuRouteImport } from './routes/foodmenu'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as TablesRouteImport } from './routes/tables'
@@ -71,6 +73,11 @@ const FoodmenuRoute = FoodmenuRouteImport.update({
   path: '/foodmenu',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrdersRoute = OrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
@@ -89,6 +96,11 @@ const ProductsRoute = ProductsRouteImport.update({
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffRoute = StaffRouteImport.update({
@@ -117,10 +129,12 @@ export interface FileRoutesByFullPath {
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
   '/foodmenu': typeof FoodmenuRoute
+  '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/payments': typeof PaymentsRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
   '/staff': typeof StaffRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -135,10 +149,12 @@ export interface FileRoutesByTo {
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
   '/foodmenu': typeof FoodmenuRoute
+  '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/payments': typeof PaymentsRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
   '/staff': typeof StaffRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -154,10 +170,12 @@ export interface FileRoutesById {
   '/customers': typeof CustomersRoute
   '/dashboard': typeof DashboardRoute
   '/foodmenu': typeof FoodmenuRoute
+  '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/payments': typeof PaymentsRoute
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
   '/staff': typeof StaffRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -174,10 +192,12 @@ export interface FileRouteTypes {
     | '/customers'
     | '/dashboard'
     | '/foodmenu'
+    | '/login'
     | '/orders'
     | '/payments'
     | '/products'
     | '/reports'
+    | '/settings'
     | '/staff'
     | '/stock'
     | '/tables'
@@ -192,10 +212,12 @@ export interface FileRouteTypes {
     | '/customers'
     | '/dashboard'
     | '/foodmenu'
+    | '/login'
     | '/orders'
     | '/payments'
     | '/products'
     | '/reports'
+    | '/settings'
     | '/staff'
     | '/stock'
     | '/tables'
@@ -210,10 +232,12 @@ export interface FileRouteTypes {
     | '/customers'
     | '/dashboard'
     | '/foodmenu'
+    | '/login'
     | '/orders'
     | '/payments'
     | '/products'
     | '/reports'
+    | '/settings'
     | '/staff'
     | '/stock'
     | '/tables'
@@ -229,10 +253,12 @@ export interface RootRouteChildren {
   CustomersRoute: typeof CustomersRoute
   DashboardRoute: typeof DashboardRoute
   FoodmenuRoute: typeof FoodmenuRoute
+  LoginRoute: typeof LoginRoute
   OrdersRoute: typeof OrdersRoute
   PaymentsRoute: typeof PaymentsRoute
   ProductsRoute: typeof ProductsRoute
   ReportsRoute: typeof ReportsRoute
+  SettingsRoute: typeof SettingsRoute
   StaffRoute: typeof StaffRoute
   StockRoute: typeof StockRoute
   TablesRoute: typeof TablesRoute
@@ -303,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FoodmenuRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orders': {
       id: '/orders'
       path: '/orders'
@@ -329,6 +362,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff': {
@@ -365,10 +405,12 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersRoute: CustomersRoute,
   DashboardRoute: DashboardRoute,
   FoodmenuRoute: FoodmenuRoute,
+  LoginRoute: LoginRoute,
   OrdersRoute: OrdersRoute,
   PaymentsRoute: PaymentsRoute,
   ProductsRoute: ProductsRoute,
   ReportsRoute: ReportsRoute,
+  SettingsRoute: SettingsRoute,
   StaffRoute: StaffRoute,
   StockRoute: StockRoute,
   TablesRoute: TablesRoute,

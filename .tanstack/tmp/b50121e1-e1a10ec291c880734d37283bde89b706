@@ -1,0 +1,177 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+
+export const Route = createFileRoute("/product/availability")({
+  component: RouteComponent,
+});
+
+// Swap for data from useQuery once wired to your backend
+const INITIAL_PRODUCTS = [
+  { id: 1, name: "Chicken Burger", category: "Fast foods", icon: "🍔", available: true },
+  { id: 2, name: "Margherita Pizza", category: "Fast foods", icon: "🍕", available: true },
+  { id: 3, name: "French Fries", category: "Fast foods", icon: "🍟", available: true },
+  { id: 4, name: "Coca Cola", category: "Cold drinks", icon: "🥤", available: true },
+  { id: 5, name: "Grilled Tilapia", category: "Local foods", icon: "🐟", available: false },
+  { id: 6, name: "Matooke & Beans", category: "Local foods", icon: "🍌", available: true },
+  { id: 7, name: "Rolex", category: "Local foods", icon: "🌯", available: true },
+  { id: 8, name: "Passion Juice", category: "Cold drinks", icon: "🧃", available: false },
+];
+
+const CATEGORIES = ["All categories", "Local foods", "Fast foods", "Cold drinks"];
+
+// Swap for your real endpoint
+async function updateAvailability({ id, available }) {
+  const res = await fetch(`/api/products/${id}/availability`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ available }),
+  });
+  if (!res.ok) throw new Error("Couldn't update availability. Please try again.");
+  return res.json();
+}
+
+function RouteComponent() {
+  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All categories");
+
+  const mutation = useMutation({
+    mutationFn: updateAvailability,
+    onError: (_err, variables) => {
+      // Roll back the optimistic toggle if the request fails
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === variables.id ? { ...p, available: !variables.available } : p
+        )
+      );
+    },
+  });
+
+  const toggleAvailability = (id) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, available: !p.available } : p))
+    );
+    const product = products.find((p) => p.id === id);
+    mutation.mutate({ id, available: !product.available });
+  };
+
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = category === "All categories" || p.category === category;
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, search, category]);
+
+  const availableCount = products.filter((p) => p.available).length;
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-slate-800">Availability</h1>
+        <p className="mt-1 text-slate-500">
+          Turn items on or off the menu without deleting them.
+        </p>
+      </div>
+
+      {/* Summary */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm text-slate-500">Available now</p>
+          <h2 className="mt-2 text-2xl font-bold text-green-600">
+            {availableCount} / {products.length}
+          </h2>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm text-slate-500">Unavailable</p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-800">
+            {products.length - availableCount}
+          </h2>
+        </div>
+      </div>
+
+      {/* Filters + list */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-xs">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="2"
+              stroke="currentColor"
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 21l-4.35-4.35m2.35-5.65a8 8 0 11-16 0 8 8 0 0116 0z"
+              />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search products..."
+              className="input input-sm w-full border-slate-300 pl-9 focus:border-cafe-500 focus:outline-none"
+            />
+          </div>
+
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="select select-sm w-full border-slate-300 focus:border-cafe-500 focus:outline-none sm:w-52"
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
+        <ul className="divide-y divide-slate-100">
+          {filtered.map((product) => (
+            <li
+              key={product.id}
+              className="flex items-center justify-between gap-4 p-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-cafe-50 text-xl">
+                  {product.icon}
+                </div>
+                <div>
+                  <p className="font-medium text-slate-800">{product.name}</p>
+                  <p className="text-xs text-slate-500">{product.category}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span
+                  className={`text-xs font-medium ${
+                    product.available ? "text-green-600" : "text-slate-400"
+                  }`}
+                >
+                  {product.available ? "Available" : "Unavailable"}
+                </span>
+                <input
+                  type="checkbox"
+                  checked={product.available}
+                  onChange={() => toggleAvailability(product.id)}
+                  className="toggle border-slate-300 [--tglbg:#fff] checked:bg-cafe-500 checked:border-cafe-500"
+                  aria-label={`Toggle availability for ${product.name}`}
+                />
+              </div>
+            </li>
+          ))}
+
+          {filtered.length === 0 && (
+            <li className="py-10 text-center text-slate-400">
+              No products match your search.
+            </li>
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+}

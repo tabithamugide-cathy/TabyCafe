@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: light --default;
+}
+
+@theme {
+  --color-cafe-50: #fff6ed;
+  --color-cafe-100: #ffead5;
+  --color-cafe-200: #fed0aa;
+  --color-cafe-300: #fdb074;
+  --color-cafe-400: #fb8a3c;
+  --color-cafe-500: #f2660d;
+  --color-cafe-600: #e34f08;
+  --color-cafe-700: #bc3a09;
+  --color-cafe-800: #95300f;
+  --color-cafe-900: #78290f;
+}

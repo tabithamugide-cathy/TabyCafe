@@ -1,8 +1,6 @@
-// import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
 
-// export const Route = createFileRoute('/login')({
-//   component: RouteComponent,
-// })
+export const Route = createFileRoute("/login")({ component: LoginPage });
 
 // function RouteComponent() {
 //   return <div>Hello "/login"!</div>
@@ -10,13 +8,15 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
+import { API_BASE } from "../api";
+import { useCart } from "../context/CartContext";
 
 // Swap this out for your real auth call
 async function loginRequest({ username, password }) {
-  const res = await fetch("/api/auth/login", {
+  const res = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ email: username, password }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -35,6 +35,7 @@ const TASTING_NOTES = [
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { updateSettings } = useCart();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -43,7 +44,20 @@ export default function LoginPage() {
     mutationFn: loginRequest,
     onSuccess: (data) => {
       if (data?.token) localStorage.setItem("cafe_popp_token", data.token);
-      navigate({ to: "/" });
+      if (data?.role) {
+        updateSettings({
+          name: data.fullName,
+          email: data.email,
+          role: data.role,
+        });
+      }
+      const landingPages = {
+        ADMIN: "/dashboard",
+        CASHIER: "/dashboard",
+        WAITER: "/tables",
+        KITCHEN: "/orders",
+      };
+      navigate({ to: landingPages[data.role] ?? "/" });
     },
   });
 

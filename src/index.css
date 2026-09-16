@@ -16,3 +16,29 @@
   --color-cafe-800: #95300f;
   --color-cafe-900: #78290f;
 }
+
+:root {
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  color: #2b211c;
+  background: #f8f5f1;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: #f8f5f1;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+::selection {
+  color: white;
+  background: #f2660d;
+}

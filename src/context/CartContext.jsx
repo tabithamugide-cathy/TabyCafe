@@ -1,26 +1,47 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 const CartContext = createContext(null);
 
 const API_BASE = "http://localhost:8080/api";
+const SETTINGS_KEY = "cafe_popp_settings";
+
+const DEFAULT_SETTINGS = {
+  name: "Tabitha Mugide",
+  role: "Administrator",
+  email: "",
+  orderUpdates: true,
+  soundAlerts: true,
+  compactMode: false,
+};
+
+async function fetchMenuItems() {
+  const response = await fetch(`${API_BASE}/menu/items`);
+  if (!response.ok) throw new Error("Couldn't load menu items.");
+  return response.json();
+}
 
 export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState({}); // { menuItemId: quantity }
-  const [menuItemsById, setMenuItemsById] = useState({});
+  const [settings, setSettings] = useState(() => {
+    try {
+      return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) };
+    } catch {
+      return DEFAULT_SETTINGS;
+    }
+  });
 
-  // Load the menu once, at app level, so both FoodMenu and Cart can use it
-  useEffect(() => {
-    fetch(`${API_BASE}/menu/items`)
-      .then((res) => res.json())
-      .then((items) => {
-        const byId = {};
-        items.forEach((item) => {
-          byId[item.id] = item;
-        });
-        setMenuItemsById(byId);
-      })
-      .catch((err) => console.error("Failed to load menu items", err));
-  }, []); // runs once on app mount
+  const { data: menuItems = [], isLoading: menuLoading, error: menuError } =
+    useQuery({
+      queryKey: ["menuItems"],
+      queryFn: fetchMenuItems,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+    });
+
+  const menuItemsById = Object.fromEntries(
+    menuItems.map((item) => [item.id, item]),
+  );
 
   const addToCart = (itemId, quantity) => {
     setCartItems((prev) => {
@@ -54,9 +75,29 @@ export function CartProvider({ children }) {
 
   const clearCart = () => setCartItems({});
 
+  const updateSettings = (changes) => {
+    setSettings((current) => {
+      const next = { ...current, ...changes };
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const logout = () => {
+    localStorage.removeItem("cafe_popp_token");
+    localStorage.removeItem(SETTINGS_KEY);
+    setCartItems({});
+    setSettings(DEFAULT_SETTINGS);
+  };
+
   const value = {
     cartItems,
     menuItemsById,
+    menuLoading,
+    menuError,
+    settings,
+    updateSettings,
+    logout,
     addToCart,
     updateQuantity,
     removeItem,

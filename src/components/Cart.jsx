@@ -16,13 +16,11 @@ import { FiChevronRight, FiUsers } from "react-icons/fi";
 import { MdOutlineReceiptLong } from "react-icons/md";
 
 const API_BASE = "http://localhost:8080/api";
+const ACTIVE_ORDER_KEY = "cafe_popp_active_order";
 
 function formatUGX(amount) {
   return `UGX ${Math.round(amount).toLocaleString()}`;
 }
-
-// TODO: replace with real logged-in staff id once auth exists
-const CURRENT_STAFF_ID = 1;
 
 const Cart = ({
   menuItemsById,
@@ -31,13 +29,30 @@ const Cart = ({
   onRemoveItem,
   onClearCart,
 }) => {
-  const [checkoutStep, setCheckoutStep] = useState("cart"); // cart, table, payment, confirmation
+  const [checkoutStep, setCheckoutStep] = useState(() =>
+    localStorage.getItem(ACTIVE_ORDER_KEY) ? "confirmation" : "cart",
+  ); // cart, table, payment, confirmation
   const [tables, setTables] = useState([]);
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
-  const [confirmedOrder, setConfirmedOrder] = useState(null);
+  const [confirmedOrder, setConfirmedOrder] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(ACTIVE_ORDER_KEY)) || null;
+    } catch {
+      return null;
+    }
+  });
+  const [paymentComplete, setPaymentComplete] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(ACTIVE_ORDER_KEY))?.status === "PAID";
+    } catch {
+      return false;
+    }
+  });
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
 
   const items = Object.entries(cartItems).map(([id, quantity]) => {
     const menuItem = menuItemsById[id];
@@ -79,10 +94,13 @@ const Cart = ({
     try {
       // 1. Create the order against the chosen table
       const orderRes = await fetch(
-        `${API_BASE}/orders?tableId=${selectedTableId}&staffId=${CURRENT_STAFF_ID}`,
+        `${API_BASE}/orders?tableId=${selectedTableId}`,
         { method: "POST" },
       );
-      if (!orderRes.ok) throw new Error("Could not create order");
+      if (!orderRes.ok) {
+        const body = await orderRes.json().catch(() => null);
+        throw new Error(body?.message || "Could not create order");
+      }
       const order = await orderRes.json();
 
       // 2. Add each cart item to the order, one request per line item
@@ -107,8 +125,61 @@ const Cart = ({
       const confirmedOrderData = await confirmRes.json();
 
       setConfirmedOrder(confirmedOrderData);
+      localStorage.setItem(ACTIVE_ORDER_KEY, JSON.stringify(confirmedOrderData));
       setCheckoutStep("confirmation");
       onClearCart?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const checkOrderStatus = async () => {
+    if (!confirmedOrder) return;
+    setIsCheckingStatus(true);
+    try {
+      const response = await fetch(`${API_BASE}/orders/${confirmedOrder.id}`);
+      if (!response.ok) throw new Error("Could not refresh order status");
+      const refreshedOrder = await response.json();
+      setConfirmedOrder(refreshedOrder);
+      localStorage.setItem(ACTIVE_ORDER_KEY, JSON.stringify(refreshedOrder));
+      setStatusMessage(
+        refreshedOrder.status === "SERVED"
+          ? "Your order is ready. Payment is now available."
+          : refreshedOrder.status === "PAID"
+            ? "Payment has already been received."
+            : "Your order is still being prepared.",
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    if (checkoutStep !== "confirmation" || !confirmedOrder) return;
+    if (["SERVED", "PAID"].includes(confirmedOrder.status)) return;
+    const interval = window.setInterval(checkOrderStatus, 10000);
+    return () => window.clearInterval(interval);
+  }, [checkoutStep, confirmedOrder]);
+
+  const payForOrder = async () => {
+    if (!confirmedOrder || confirmedOrder.status !== "SERVED") return;
+    setIsProcessing(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${API_BASE}/payments?orderId=${confirmedOrder.id}&method=${paymentMethod}`,
+        { method: "POST" },
+      );
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.message || "Could not complete payment");
+      setPaymentComplete(true);
+      const paidOrder = { ...confirmedOrder, status: "PAID" };
+      setConfirmedOrder(paidOrder);
+      localStorage.setItem(ACTIVE_ORDER_KEY, JSON.stringify(paidOrder));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -163,10 +234,37 @@ const Cart = ({
               </span>
             </div>
           </div>
-          <p className="text-xs text-gray-400">
-            Payment happens once the order has been served — a waiter will
-            collect it.
-          </p>
+          <div className="mt-6 rounded-2xl border border-cafe-100 bg-cafe-50 p-4 text-left">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-gray-700">Payment</span>
+              <span className="badge badge-warning">{confirmedOrder.status}</span>
+            </div>
+            {paymentComplete ? (
+              <p className="mt-3 text-sm font-medium text-green-700">Payment received. Thank you.</p>
+            ) : confirmedOrder.status !== "SERVED" ? (
+              <>
+                <p className="mt-2 text-sm text-gray-500">Payment becomes available here when the kitchen marks your order ready.</p>
+                {statusMessage && <p className="mt-2 text-xs font-medium text-cafe-700">{statusMessage}</p>}
+                <button onClick={checkOrderStatus} disabled={isCheckingStatus} className="btn btn-sm mt-3 border-cafe-200 bg-white text-cafe-700 hover:bg-cafe-100">
+                  {isCheckingStatus ? "Checking..." : "Check status"}
+                </button>
+              </>
+            ) : (
+              <>
+                <label className="mt-3 block text-sm font-medium text-gray-600">
+                  Payment method
+                  <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className="select select-sm mt-1 w-full bg-white">
+                    <option value="CASH">Cash</option>
+                    <option value="MOBILE_MONEY">Mobile money</option>
+                    <option value="CARD">Card</option>
+                  </select>
+                </label>
+                <button onClick={payForOrder} disabled={isProcessing} className="btn mt-3 w-full border-cafe-500 bg-cafe-500 text-white hover:bg-cafe-600">
+                  {isProcessing ? "Processing..." : `Pay ${formatUGX(confirmedOrder.total)}`}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );

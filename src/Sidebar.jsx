@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import React from "react";
-import { CiLogout } from "react-icons/ci";
+import { useNavigate } from "@tanstack/react-router";
+import { BsBoxArrowRight } from "react-icons/bs";
+import { useCart } from "./context/CartContext";
 import { RxDashboard } from "react-icons/rx";
 import { BiFoodMenu } from "react-icons/bi";
 /* Reusable icon so every entry is easy to swap without repeating the svg boilerplate */
@@ -101,19 +103,19 @@ const NAV_SECTIONS = [
       { label: "Stock history", to: "/stock", search: { tab: "History" } },
     ],
   },
-  {
-    type: "link",
-    label: "Customers",
-    to: "/customers",
-    icon: (
-      <Icon>
-        <circle cx="9" cy="8" r="3" />
-        <path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        <path d="M22 21v-1a5.5 5.5 0 0 0-4-5.3" />
-      </Icon>
-    ),
-  },
+  // {
+  //   type: "link",
+  //   label: "Customers",
+  //   to: "/customers",
+  //   icon: (
+  //     <Icon>
+  //       <circle cx="9" cy="8" r="3" />
+  //       <path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1" />
+  //       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  //       <path d="M22 21v-1a5.5 5.5 0 0 0-4-5.3" />
+  //     </Icon>
+  //   ),
+  // },
   {
     type: "link",
     label: "Staff",
@@ -185,7 +187,24 @@ const NAV_SECTIONS = [
   },
 ];
 
+const ROLE_SECTIONS = {
+  ADMIN: new Set(NAV_SECTIONS.map((section) => section.label)),
+  CASHIER: new Set(["Dashboard", "Foodmenu", "Orders", "Tables", "Payments", "Customers", "Settings", "About"]),
+  WAITER: new Set(["Foodmenu", "Orders", "Tables", "Customers", "Settings", "About"]),
+  KITCHEN: new Set(["Foodmenu", "Orders", "Settings", "About"]),
+};
+
 export default function Sidebar() {
+  const { settings, logout } = useCart();
+  const navigate = useNavigate();
+  const role = settings.role.toUpperCase() === "ADMINISTRATOR" ? "ADMIN" : settings.role.toUpperCase();
+  const visibleSections = NAV_SECTIONS.filter((section) => ROLE_SECTIONS[role]?.has(section.label));
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/" });
+  };
+
   return (
     <div className="drawer-side is-drawer-close:overflow-visible">
       <label
@@ -194,11 +213,11 @@ export default function Sidebar() {
         className="drawer-overlay"
       ></label>
 
-      <div className="flex min-h-full flex-col items-start bg-base-200 is-drawer-close:w-14 is-drawer-open:w-64 border-r border-base-300">
+      <div className="flex min-h-full w-64 flex-col items-start border-r border-[#eadfd5] bg-[#fffaf6] is-drawer-close:w-14 is-drawer-open:w-64">
         {/* Brand */}
         <div className="w-full px-4 py-5 is-drawer-close:px-0 is-drawer-close:flex is-drawer-close:justify-center">
-          <h1 className="text-xl font-bold whitespace-nowrap is-drawer-close:hidden">
-            <span className="text-base-content">Taby's</span>{" "}
+          <h1 className="text-xl font-bold tracking-tight whitespace-nowrap is-drawer-close:hidden">
+            <span className="text-[#2b211c]">Taby's</span>{" "}
             <span className="text-cafe-500">CafePopp</span>
           </h1>
           <span className="hidden is-drawer-close:inline text-cafe-500 font-bold text-lg">
@@ -207,8 +226,8 @@ export default function Sidebar() {
         </div>
 
         {/* Nav */}
-        <ul className="menu w-full grow">
-          {NAV_SECTIONS.map((section) =>
+        <ul className="menu w-full grow gap-1 px-2 py-3 text-[13px] font-medium">
+          {visibleSections.map((section) =>
             section.type === "link" ? (
               <li key={section.label}>
                 <Link
@@ -255,8 +274,8 @@ export default function Sidebar() {
 
         {/* Footer / current user */}
         <div className="w-full border-t border-base-300 p-3 is-drawer-close:flex is-drawer-close:justify-center">
-          <button className="btn btn-ghost btn-sm w-full justify-start gap-2 is-drawer-close:w-auto is-drawer-close:justify-center">
-            <CiLogout size={16} />
+          <button onClick={handleLogout} className="btn btn-ghost btn-sm w-full justify-start gap-2 text-orange-600 is-drawer-close:w-auto is-drawer-close:justify-center">
+            <BsBoxArrowRight size={16} />
             <span className="is-drawer-close:hidden">Log out</span>
           </button>
         </div>
